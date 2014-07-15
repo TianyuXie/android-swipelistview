@@ -326,6 +326,21 @@ public class SwipeListViewTouchListener implements View.OnTouchListener {
     protected void closeAnimate(int position) {
         closeAnimate(swipeListView.getChildAt(position - swipeListView.getFirstVisiblePosition()).findViewById(swipeFrontView), position);
     }
+    
+    /**
+     * Close all opened items
+     */
+    void closeOtherOpenedItems() {
+        if (opened != null && downPosition != SwipeListView.INVALID_POSITION) {
+            int start = swipeListView.getFirstVisiblePosition();
+            int end = swipeListView.getLastVisiblePosition();
+            for (int i = start; i <= end; i++) {
+                if (opened.get(i) && i != downPosition) {
+                    closeAnimate(swipeListView.getChildAt(i - start).findViewById(swipeFrontView), i);
+                }
+            }
+        }
+    }
 
     /**
      * Swap choice state in item
@@ -580,6 +595,12 @@ public class SwipeListViewTouchListener implements View.OnTouchListener {
             }
         }
 
+        final boolean aux = !opened.get(position);
+        if (swap) {
+            opened.set(position, aux);
+            openedRight.set(position, swapRight);
+        }
+
         animate(view)
                 .translationX(moveTo)
                 .setDuration(animationTime)
@@ -588,16 +609,12 @@ public class SwipeListViewTouchListener implements View.OnTouchListener {
                     public void onAnimationEnd(Animator animation) {
                         swipeListView.resetScrolling();
                         if (swap) {
-                            boolean aux = !opened.get(position);
-                            opened.set(position, aux);
                             if (aux) {
                                 swipeListView.onOpened(position, swapRight);
-                                openedRight.set(position, swapRight);
                             } else {
                                 swipeListView.onClosed(position, openedRight.get(position));
                             }
                         }
-                        resetCell();
                     }
                 });
     }
@@ -890,7 +907,10 @@ public class SwipeListViewTouchListener implements View.OnTouchListener {
                 break;
             }
         }
-        return false;
+
+        closeOtherOpenedItems();
+        view.onTouchEvent(motionEvent);
+        return true;
     }
 
     private void setActionsTo(int action) {
